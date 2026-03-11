@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FinanceFlow Dashboard - Zero-Based Budget Overview">
+  <title>Dashboard | FinanceFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()">
+            <svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div>
+            <h1 id="welcome-title">Good evening</h1>
+            <p id="welcome-date">March 2026 · Zero-Based Budget</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="month" id="month-picker" class="form-input" style="width:auto;padding:8px 12px;font-size:13px;" onchange="loadDashboard()">
+          <button class="btn btn-primary btn-sm" onclick="openQuickAdd()" style="width:auto;" aria-label="Add new item">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Quick Add
+          </button>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Zero-Based Budget Summary -->
+        <div class="bento-grid stagger-children">
+
+          <!-- Left to Budget (Hero Card) -->
+          <div class="bento-card dark-card span-4" id="ltb-card">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.6);">Left to Budget</span>
+              <div style="width:36px;height:36px;background:rgba(255,255,255,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                <svg style="width:18px;height:18px;color:white;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="left-to-budget" style="color:white;font-size:26px;">LKR 0.00</div>
+            <p style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:6px;">Goal: LKR 0.00 (fully allocated)</p>
+          </div>
+
+          <!-- Left to Spend -->
+          <div class="bento-card span-4">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span class="stat-label">Left to Spend</span>
+              <div style="width:36px;height:36px;background:var(--success-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                <svg style="width:18px;height:18px;color:var(--success);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v1"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="left-to-spend" style="font-size:26px;">LKR 0.00</div>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:6px;">Actual Income − Actual Expenses</p>
+          </div>
+
+          <!-- Total Actual Income -->
+          <div class="bento-card span-4">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <span class="stat-label">Total Income</span>
+              <div style="width:36px;height:36px;background:var(--info-bg);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                <svg style="width:18px;height:18px;color:var(--info);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"/></svg>
+              </div>
+            </div>
+            <div class="stat-value" id="total-income" style="font-size:26px;">LKR 0.00</div>
+            <div style="display:flex;gap:16px;margin-top:8px;">
+              <span style="font-size:11px;color:var(--text-muted);">Expected: <strong id="expected-income">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Income List -->
+          <div class="bento-card span-5">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 style="font-size:16px;font-weight:700;">💰 Income Sources</h2>
+              <button class="btn btn-ghost btn-sm" onclick="openQuickAdd('income')" style="font-size:12px;">+ Add</button>
+            </div>
+            <div id="income-list">
+              <div class="empty-state" style="padding:24px 8px;"><p class="empty-state-text">No income sources added</p></div>
+            </div>
+          </div>
+
+          <!-- Breakdown Donut -->
+          <div class="bento-card span-7">
+            <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;">📊 Budget Breakdown</h2>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="breakdown-cards">
+              <!-- Bills -->
+              <div style="padding:16px;background:var(--bg-hover);border-radius:var(--radius-md);text-align:center;">
+                <div style="font-size:22px;margin-bottom:4px;">🧾</div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Bills</div>
+                <div style="font-size:18px;font-weight:700;" id="bills-actual">LKR 0</div>
+                <div style="font-size:11px;color:var(--text-muted);">of <span id="bills-budget">LKR 0</span></div>
+                <div class="progress-bar-track" style="height:4px;margin-top:8px;"><div class="progress-bar-fill" id="bills-bar" style="width:0%;"></div></div>
+              </div>
+              <!-- Expenses -->
+              <div style="padding:16px;background:var(--bg-hover);border-radius:var(--radius-md);text-align:center;">
+                <div style="font-size:22px;margin-bottom:4px;">🛒</div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Expenses</div>
+                <div style="font-size:18px;font-weight:700;" id="expenses-actual">LKR 0</div>
+                <div style="font-size:11px;color:var(--text-muted);">of <span id="expenses-budget">LKR 0</span></div>
+                <div class="progress-bar-track" style="height:4px;margin-top:8px;"><div class="progress-bar-fill" id="expenses-bar" style="width:0%;"></div></div>
+              </div>
+              <!-- Savings -->
+              <div style="padding:16px;background:var(--bg-hover);border-radius:var(--radius-md);text-align:center;">
+                <div style="font-size:22px;margin-bottom:4px;">🏦</div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">Savings</div>
+                <div style="font-size:18px;font-weight:700;" id="savings-actual">LKR 0</div>
+                <div style="font-size:11px;color:var(--text-muted);">of <span id="savings-budget">LKR 0</span></div>
+                <div class="progress-bar-track" style="height:4px;margin-top:8px;"><div class="progress-bar-fill" id="savings-bar" style="width:0%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bills -->
+          <div class="bento-card span-4">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 style="font-size:16px;font-weight:700;">🧾 Bills</h2>
+              <div style="display:flex;gap:4px;align-items:center;">
+                <span style="font-size:12px;color:var(--text-muted);" id="bills-paid-count">0/0 paid</span>
+                <button class="btn btn-ghost btn-sm" onclick="openQuickAdd('bill')" style="font-size:12px;">+ Add</button>
+              </div>
+            </div>
+            <div id="bills-list"><div class="empty-state" style="padding:20px 8px;"><p class="empty-state-text">No bills added</p></div></div>
+          </div>
+
+          <!-- Expenses -->
+          <div class="bento-card span-4">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 style="font-size:16px;font-weight:700;">🛒 Expenses</h2>
+              <button class="btn btn-ghost btn-sm" onclick="openQuickAdd('expense')" style="font-size:12px;">+ Add</button>
+            </div>
+            <div id="expenses-list"><div class="empty-state" style="padding:20px 8px;"><p class="empty-state-text">No expenses added</p></div></div>
+          </div>
+
+          <!-- Savings -->
+          <div class="bento-card span-4">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <h2 style="font-size:16px;font-weight:700;">🏦 Savings</h2>
+              <button class="btn btn-ghost btn-sm" onclick="openQuickAdd('saving')" style="font-size:12px;">+ Add</button>
+            </div>
+            <div id="savings-list"><div class="empty-state" style="padding:20px 8px;"><p class="empty-state-text">No savings contributions</p></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openQuickAdd()" title="Quick Add" aria-label="Add new budget item">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+  </button>
+
+  <!-- Quick Add Modal (Hick's Law - simplified) -->
+  <div class="modal-overlay" id="quick-add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="qa-title">Quick Add</h3>
+        <button class="modal-close" onclick="closeQuickAdd()" aria-label="Close modal">
+          <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="qa-form">
+          <input type="hidden" id="qa-edit-id" value="">
+          <input type="hidden" id="qa-edit-table" value="">
+
+          <!-- Type Selection -->
+          <div class="form-group">
+            <div class="tabs" id="qa-type-tabs">
+              <button type="button" class="tab-btn" data-type="income" onclick="setQaType('income')">💰 Income</button>
+              <button type="button" class="tab-btn active" data-type="bill" onclick="setQaType('bill')">🧾 Bill</button>
+              <button type="button" class="tab-btn" data-type="expense" onclick="setQaType('expense')">🛒 Expense</button>
+              <button type="button" class="tab-btn" data-type="saving" onclick="setQaType('saving')">🏦 Saving</button>
+            </div>
+          </div>
+          <input type="hidden" id="qa-type" value="bill">
+
+          <!-- Name -->
+          <div class="form-group">
+            <label class="form-label" for="qa-name">Name</label>
+            <input type="text" id="qa-name" class="form-input" placeholder="e.g. Paycheck, Rent, Groceries..." required>
+          </div>
+
+          <!-- Amounts Row -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label" id="qa-budget-label" for="qa-budget-amt">Budgeted (LKR)</label>
+              <input type="number" id="qa-budget-amt" class="form-input" placeholder="0.00" step="0.01" min="0" required style="font-weight:700;">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="qa-actual-amt">Actual (LKR)</label>
+              <input type="number" id="qa-actual-amt" class="form-input" placeholder="0.00" step="0.01" min="0" style="font-weight:700;">
+            </div>
+          </div>
+
+          <!-- Date (for bills/income) -->
+          <div class="form-group" id="qa-date-group">
+            <label class="form-label" id="qa-date-label" for="qa-date">Due Date</label>
+            <input type="date" id="qa-date" class="form-input">
+          </div>
+
+          <!-- Paid Status (bills only) -->
+          <div class="form-group" id="qa-paid-group" style="display:none;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-secondary);">
+              <input type="checkbox" id="qa-is-paid" style="width:18px;height:18px;accent-color:#0a0a0a;cursor:pointer;">
+              Mark as Paid
+            </label>
+          </div>
+        </form>
+
+        <!-- Diff Preview -->
+        <div style="padding:14px;background:var(--bg-hover);border-radius:var(--radius-md);margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;font-weight:500;color:var(--text-muted);">Difference</span>
+            <span style="font-size:16px;font-weight:700;" id="qa-diff">LKR 0.00</span>
+          </div>
+          <p style="font-size:11px;color:var(--text-muted);margin-top:2px;">Budget − Actual</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeQuickAdd()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="qa-save-btn" onclick="saveQuickAdd()" style="width:auto;">
+          <span id="qa-save-text">Save</span>
+          <div class="spinner hidden" id="qa-spinner"></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header"><h3 class="modal-title">Delete Item</h3></div>
+      <div class="modal-body"><p style="font-size:14px;color:var(--text-secondary);">Are you sure? This cannot be undone.</p>
+        <input type="hidden" id="del-id"><input type="hidden" id="del-table">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDelete()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDelete()" style="width:auto;">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/components-loader.js"></script>
+  <script>
+    ComponentLoader.load('/components/sidebar.html', '#sidebar-container');
+
+    let currentUser = null;
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function getMonthYear() {
+      const v = document.getElementById('month-picker').value;
+      if (!v) { const n = new Date(); return { month: n.getMonth()+1, year: n.getFullYear() }; }
+      const [y, m] = v.split('-'); return { month: parseInt(m), year: parseInt(y) };
+    }
+
+    function fmtCur(v) { return `LKR ${Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+    function fmtShort(v) { return `LKR ${Number(v||0).toLocaleString('en-US',{maximumFractionDigits:0})}`; }
+    function getGreeting() { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening'; }
+    function pct(a,b) { return b>0?Math.min(100,Math.round((a/b)*100)):0; }
+    function barClass(p) { return p>=90?'danger':p>=70?'warning':''; }
+
+    // Init
+    async function init() {
+      const session = await redirectIfNotLoggedIn();
+      if (!session) return;
+      currentUser = session.user;
+      const name = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+      document.getElementById('welcome-title').textContent = `${getGreeting()}, ${name.split(' ')[0]}`;
+
+      const now = new Date();
+      document.getElementById('month-picker').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      await loadDashboard();
+    }
+
+    async function loadDashboard() {
+      const { month, year } = getMonthYear();
+      document.getElementById('welcome-date').textContent = `${monthNames[month-1]} ${year} · Zero-Based Budget`;
+
+      await Promise.all([loadSummary(month, year), loadIncome(month, year), loadBudgetItems(month, year)]);
+    }
+
+    // Load summary stats
+    async function loadSummary(month, year) {
+      try {
+        const { data } = await supabaseClient.rpc('get_zero_budget_summary', { p_user_id: currentUser.id, p_month: month, p_year: year });
+        if (!data || !data[0]) return;
+        const s = data[0];
+
+        // Hero cards
+        document.getElementById('left-to-budget').textContent = fmtCur(s.left_to_budget);
+        document.getElementById('left-to-spend').textContent = fmtCur(s.left_to_spend);
+        document.getElementById('total-income').textContent = fmtCur(s.total_actual_income);
+        document.getElementById('expected-income').textContent = fmtCur(s.total_expected_income);
+
+        // Left to budget card color
+        const ltbCard = document.getElementById('ltb-card');
+        const ltb = Number(s.left_to_budget);
+        if (Math.abs(ltb) < 1) {
+          ltbCard.style.background = '#166534'; // green = perfect
+        } else if (ltb < 0) {
+          ltbCard.style.background = '#991b1b'; // red = overspent
+        } else {
+          ltbCard.style.background = '#0a0a0a'; // black = still has budget
+        }
+
+        // Left to spend color
+        const lts = Number(s.left_to_spend);
+        document.getElementById('left-to-spend').style.color = lts >= 0 ? 'var(--success)' : 'var(--danger)';
+
+        // Breakdown bars
+        const bp = pct(s.total_actual_bills, s.total_budgeted_bills);
+        const ep = pct(s.total_actual_spending, s.total_budgeted_spending);
+        const sp = pct(s.total_actual_savings, s.total_budgeted_savings);
+
+        document.getElementById('bills-actual').textContent = fmtShort(s.total_actual_bills);
+        document.getElementById('bills-budget').textContent = fmtShort(s.total_budgeted_bills);
+        document.getElementById('bills-bar').style.width = bp + '%';
+        document.getElementById('bills-bar').className = `progress-bar-fill ${barClass(bp)}`;
+
+        document.getElementById('expenses-actual').textContent = fmtShort(s.total_actual_spending);
+        document.getElementById('expenses-budget').textContent = fmtShort(s.total_budgeted_spending);
+        document.getElementById('expenses-bar').style.width = ep + '%';
+        document.getElementById('expenses-bar').className = `progress-bar-fill ${barClass(ep)}`;
+
+        document.getElementById('savings-actual').textContent = fmtShort(s.total_actual_savings);
+        document.getElementById('savings-budget').textContent = fmtShort(s.total_budgeted_savings);
+        document.getElementById('savings-bar').style.width = sp + '%';
+        document.getElementById('savings-bar').className = `progress-bar-fill ${barClass(sp)}`;
+
+        document.getElementById('bills-paid-count').textContent = `${s.paid_bills_count}/${s.bills_count} paid`;
+      } catch(e) { console.error('Summary:', e); }
+    }
+
+    // Load income list
+    async function loadIncome(month, year) {
+      const { data } = await supabaseClient.from('income_sources').select('*')
+        .eq('user_id', currentUser.id).eq('month', month).eq('year', year).order('created_at');
+      renderIncomeList(data || []);
+    }
+
+    function renderIncomeList(items) {
+      if (!items.length) { document.getElementById('income-list').innerHTML = '<div class="empty-state" style="padding:20px 8px;"><p class="empty-state-text">No income sources. Click +Add</p></div>'; return; }
+      let html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+      items.forEach(i => {
+        const diff = Number(i.actual_amount) - Number(i.expected_amount);
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-hover);border-radius:var(--radius-md);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-active)'" onmouseout="this.style.background='var(--bg-hover)'">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">${i.name} ${i.is_received?'<span style="font-size:10px;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:100px;font-weight:600;">Received</span>':''}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Expected: ${fmtShort(i.expected_amount)} ${i.payday?'· '+new Date(i.payday).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>
+          </div>
+          <div style="text-align:right;margin-right:8px;">
+            <div style="font-size:15px;font-weight:700;color:var(--success);">${fmtShort(i.actual_amount)}</div>
+          </div>
+          <div style="display:flex;gap:2px;">
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="editIncome('${i.id}')" aria-label="Edit"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openDel('${i.id}','income_sources')" aria-label="Delete" style="color:var(--danger);"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+      document.getElementById('income-list').innerHTML = html;
+    }
+
+    // Load budget items
+    let allBudgetItems = [];
+    async function loadBudgetItems(month, year) {
+      const { data } = await supabaseClient.from('budget_items').select('*')
+        .eq('user_id', currentUser.id).eq('month', month).eq('year', year).order('created_at');
+      allBudgetItems = data || [];
+      renderBudgetList(allBudgetItems.filter(i => i.category_type === 'bill'), 'bills-list', 'bill');
+      renderBudgetList(allBudgetItems.filter(i => i.category_type === 'expense'), 'expenses-list', 'expense');
+      renderBudgetList(allBudgetItems.filter(i => i.category_type === 'saving'), 'savings-list', 'saving');
+    }
+
+    function renderBudgetList(items, containerId, type) {
+      const labels = { bill: 'bills', expense: 'expenses', saving: 'savings contributions' };
+      if (!items.length) { document.getElementById(containerId).innerHTML = `<div class="empty-state" style="padding:20px 8px;"><p class="empty-state-text">No ${labels[type]}. Click +Add</p></div>`; return; }
+
+      let html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+      items.forEach(i => {
+        const diff = Number(i.budget_amount) - Number(i.actual_amount);
+        const diffColor = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-hover);border-radius:var(--radius-md);transition:all 0.15s;" onmouseover="this.style.background='var(--bg-active)'" onmouseout="this.style.background='var(--bg-hover)'">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">${i.name}
+              ${type==='bill' && i.is_paid ? '<span style="font-size:10px;background:var(--success-bg);color:var(--success);padding:2px 8px;border-radius:100px;font-weight:600;">Paid</span>' : ''}
+              ${type==='bill' && !i.is_paid ? '<span style="font-size:10px;background:var(--warning-bg);color:var(--warning);padding:2px 8px;border-radius:100px;font-weight:600;">Unpaid</span>' : ''}
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Budget: ${fmtShort(i.budget_amount)} ${i.due_date?'· Due '+new Date(i.due_date).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>
+          </div>
+          <div style="text-align:right;margin-right:8px;">
+            <div style="font-size:15px;font-weight:700;">${fmtShort(i.actual_amount)}</div>
+            <div style="font-size:11px;font-weight:600;color:${diffColor};">${diff>=0?'+':''}${fmtShort(diff)}</div>
+          </div>
+          <div style="display:flex;gap:2px;">
+            ${type==='bill' && !i.is_paid ? `<button class="btn btn-ghost btn-icon btn-sm" onclick="togglePaid('${i.id}',true)" title="Mark Paid" style="color:var(--success);"><svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></button>` : ''}
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="editBudgetItem('${i.id}')" aria-label="Edit"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openDel('${i.id}','budget_items')" aria-label="Delete" style="color:var(--danger);"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+      document.getElementById(containerId).innerHTML = html;
+    }
+
+    // Toggle paid status
+    async function togglePaid(id, paid) {
+      await supabaseClient.from('budget_items').update({ is_paid: paid, actual_amount: paid ? (allBudgetItems.find(i=>i.id===id)?.budget_amount || 0) : 0 }).eq('id', id);
+      Toast.show(paid ? 'Marked as paid ✓' : 'Marked unpaid', 'success');
+      await loadDashboard();
+    }
+
+    // Quick Add Modal
+    function setQaType(type) {
+      document.getElementById('qa-type').value = type;
+      document.querySelectorAll('#qa-type-tabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+      const isIncome = type === 'income';
+      const isBill = type === 'bill';
+      document.getElementById('qa-budget-label').textContent = isIncome ? 'Expected (LKR)' : 'Budgeted (LKR)';
+      document.getElementById('qa-date-label').textContent = isIncome ? 'Payday' : 'Due Date';
+      document.getElementById('qa-paid-group').style.display = isBill ? 'block' : 'none';
+    }
+
+    function openQuickAdd(type = 'bill') {
+      document.getElementById('quick-add-modal').classList.add('active');
+      document.getElementById('qa-form').reset();
+      document.getElementById('qa-edit-id').value = '';
+      document.getElementById('qa-edit-table').value = '';
+      document.getElementById('qa-title').textContent = 'Quick Add';
+      document.getElementById('qa-is-paid').checked = false;
+      setQaType(type);
+      updateDiffPreview();
+    }
+
+    function closeQuickAdd() { document.getElementById('quick-add-modal').classList.remove('active'); }
+
+    // Live diff preview
+    document.getElementById('qa-budget-amt')?.addEventListener('input', updateDiffPreview);
+    document.getElementById('qa-actual-amt')?.addEventListener('input', updateDiffPreview);
+    function updateDiffPreview() {
+      const b = parseFloat(document.getElementById('qa-budget-amt').value) || 0;
+      const a = parseFloat(document.getElementById('qa-actual-amt').value) || 0;
+      const diff = b - a;
+      const el = document.getElementById('qa-diff');
+      el.textContent = fmtCur(Math.abs(diff));
+      el.style.color = diff >= 0 ? 'var(--success)' : 'var(--danger)';
+      el.textContent = (diff >= 0 ? '+' : '-') + fmtCur(Math.abs(diff));
+    }
+
+    // Edit income
+    async function editIncome(id) {
+      const { data } = await supabaseClient.from('income_sources').select('*').eq('id', id).single();
+      if (!data) return;
+      openQuickAdd('income');
+      document.getElementById('qa-title').textContent = 'Edit Income';
+      document.getElementById('qa-edit-id').value = id;
+      document.getElementById('qa-edit-table').value = 'income_sources';
+      document.getElementById('qa-name').value = data.name;
+      document.getElementById('qa-budget-amt').value = data.expected_amount;
+      document.getElementById('qa-actual-amt').value = data.actual_amount;
+      document.getElementById('qa-date').value = data.payday || '';
+      updateDiffPreview();
+    }
+
+    // Edit budget item
+    function editBudgetItem(id) {
+      const item = allBudgetItems.find(i => i.id === id);
+      if (!item) return;
+      openQuickAdd(item.category_type);
+      document.getElementById('qa-title').textContent = 'Edit Item';
+      document.getElementById('qa-edit-id').value = id;
+      document.getElementById('qa-edit-table').value = 'budget_items';
+      document.getElementById('qa-name').value = item.name;
+      document.getElementById('qa-budget-amt').value = item.budget_amount;
+      document.getElementById('qa-actual-amt').value = item.actual_amount;
+      document.getElementById('qa-date').value = item.due_date || '';
+      document.getElementById('qa-is-paid').checked = item.is_paid;
+      updateDiffPreview();
+    }
+
+    // Save
+    async function saveQuickAdd() {
+      const editId = document.getElementById('qa-edit-id').value;
+      const editTable = document.getElementById('qa-edit-table').value;
+      const type = document.getElementById('qa-type').value;
+      const name = document.getElementById('qa-name').value.trim();
+      const budgetAmt = parseFloat(document.getElementById('qa-budget-amt').value) || 0;
+      const actualAmt = parseFloat(document.getElementById('qa-actual-amt').value) || 0;
+      const date = document.getElementById('qa-date').value || null;
+      const isPaid = document.getElementById('qa-is-paid').checked;
+      const { month, year } = getMonthYear();
+
+      if (!name) return Toast.show('Enter a name', 'warning');
+      if (budgetAmt <= 0 && actualAmt <= 0) return Toast.show('Enter an amount', 'warning');
+
+      const btn = document.getElementById('qa-save-btn');
+      btn.disabled = true;
+      document.getElementById('qa-save-text').textContent = 'Saving...';
+      document.getElementById('qa-spinner').classList.remove('hidden');
+
+      try {
+        if (type === 'income') {
+          const payload = { name, expected_amount: budgetAmt, actual_amount: actualAmt, payday: date, is_received: actualAmt > 0, month, year };
+          if (editId && editTable === 'income_sources') {
+            const { error } = await supabaseClient.from('income_sources').update(payload).eq('id', editId);
+            if (error) throw error;
+          } else {
+            payload.user_id = currentUser.id;
+            const { error } = await supabaseClient.from('income_sources').insert(payload);
+            if (error) throw error;
+          }
+        } else {
+          const payload = { category_type: type, name, budget_amount: budgetAmt, actual_amount: actualAmt, due_date: date, is_paid: type === 'bill' ? isPaid : false, month, year };
+          if (editId && editTable === 'budget_items') {
+            const { error } = await supabaseClient.from('budget_items').update(payload).eq('id', editId);
+            if (error) throw error;
+          } else {
+            payload.user_id = currentUser.id;
+            const { error } = await supabaseClient.from('budget_items').insert(payload);
+            if (error) throw error;
+          }
+        }
+
+        Toast.show('Saved successfully! ✓', 'success');
+        closeQuickAdd();
+        await loadDashboard();
+      } catch(e) {
+        Toast.show(e.message || 'Failed to save', 'error');
+      } finally {
+        btn.disabled = false;
+        document.getElementById('qa-save-text').textContent = 'Save';
+        document.getElementById('qa-spinner').classList.add('hidden');
+      }
+    }
+
+    // Delete
+    function openDel(id, table) {
+      document.getElementById('del-id').value = id;
+      document.getElementById('del-table').value = table;
+      document.getElementById('delete-modal').classList.add('active');
+    }
+    function closeDelete() { document.getElementById('delete-modal').classList.remove('active'); }
+    async function confirmDelete() {
+      const id = document.getElementById('del-id').value;
+      const table = document.getElementById('del-table').value;
+      try {
+        const { error } = await supabaseClient.from(table).delete().eq('id', id);
+        if (error) throw error;
+        Toast.show('Deleted', 'success');
+        closeDelete();
+        await loadDashboard();
+      } catch(e) { Toast.show(e.message, 'error'); }
+    }
+
+    // Modal overlay click close
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+      m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+    });
+
+    // Keyboard: Escape to close modals
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

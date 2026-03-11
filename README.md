@@ -1,5 +1,29 @@
-# FinanceFlow
-a personal finance management system
+<p align="center">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="HTML5"/>
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" alt="CSS3"/>
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript"/>
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS"/>
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase"/>
+</p>
+
+<h1 align="center">💰 FinanceFlow</h1>
+
+<p align="center">
+  <strong>Master Your Wealth with Invisible Effort.</strong><br/>
+  AI-powered personal finance tracking with bento-style insights and bank-grade security.
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#project-structure">Project Structure</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#pages">Pages</a> •
+  <a href="#license">License</a>
+</p>
+
+---
+
 ## ✨ Overview
 
 **FinanceFlow** is a modern, full-featured personal finance web application built with vanilla HTML/CSS/JS and powered by **Supabase** for authentication and real-time data. It features a **Zero-Based Budget** system where every rupee of income is assigned a purpose — expenses, savings, or goals.
@@ -163,3 +187,6 @@ This project is for educational and personal use. Feel free to fork and customiz
 
 ---
 
+<p align="center">
+  Built with ♥ & <a href="https://supabase.com">Supabase</a>
+</p>

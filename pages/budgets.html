@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Set and track monthly budgets - FinanceFlow">
+  <title>Budgets | FinanceFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+          <div><h1>Budgets</h1><p id="budget-subtitle">Monthly spending limits</p></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="month" id="budget-month" class="form-input" style="width:auto;padding:8px 14px;font-size:13px;" onchange="loadBudgets()">
+          <button class="btn btn-primary btn-sm" onclick="openBudgetModal()" style="width:auto;">
+            <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Set Budget
+          </button>
+        </div>
+      </div>
+
+      <div class="page-body">
+        <!-- Summary Cards -->
+        <div class="bento-grid stagger-children" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+          <div class="bento-card" style="grid-column:span 1;">
+            <span class="stat-label">Total Budget</span>
+            <div class="stat-value" id="total-budget" style="font-size:22px;">LKR 0.00</div>
+          </div>
+          <div class="bento-card" style="grid-column:span 1;">
+            <span class="stat-label">Total Spent</span>
+            <div class="stat-value" id="total-spent" style="font-size:22px;">LKR 0.00</div>
+          </div>
+          <div class="bento-card" style="grid-column:span 1;">
+            <span class="stat-label">Remaining</span>
+            <div class="stat-value" id="total-remaining" style="font-size:22px;">LKR 0.00</div>
+          </div>
+        </div>
+
+        <!-- Budget Cards -->
+        <div class="bento-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr));" id="budget-grid">
+          <div class="empty-state" style="grid-column:1/-1;">
+            <div class="empty-state-icon"><svg style="width:28px;height:28px;color:var(--text-faint);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+            <p class="empty-state-title">No budgets set</p>
+            <p class="empty-state-text">Set monthly limits to control spending</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Set Budget Modal -->
+  <div class="modal-overlay" id="budget-modal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="budget-modal-title">Set Budget</h3>
+        <button class="modal-close" onclick="closeBudgetModal()"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <form id="budget-form">
+          <input type="hidden" id="budget-edit-id" value="">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select id="budget-category" class="form-input" required><option value="">Select expense category...</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Budget Amount (LKR)</label>
+            <input type="number" id="budget-amount" class="form-input" placeholder="0.00" step="0.01" min="1" required style="font-size:18px;font-weight:700;">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBudgetModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveBudget()" style="width:auto;">Save Budget</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="budget-delete-modal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header"><h3 class="modal-title">Remove Budget</h3></div>
+      <div class="modal-body"><p style="font-size:14px;color:var(--text-secondary);">Remove this budget limit?</p><input type="hidden" id="budget-delete-id"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBudgetDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmBudgetDelete()" style="width:auto;">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/components-loader.js"></script>
+  <script>
+    ComponentLoader.load('/components/sidebar.html', '#sidebar-container');
+
+    let currentUser = null;
+    let budgets = [];
+    let expenseCategories = [];
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function getSelectedMonth() {
+      const val = document.getElementById('budget-month').value;
+      if (!val) return { month: new Date().getMonth()+1, year: new Date().getFullYear() };
+      const [y, m] = val.split('-');
+      return { month: parseInt(m), year: parseInt(y) };
+    }
+
+    async function init() {
+      const session = await redirectIfNotLoggedIn();
+      if (!session) return;
+      currentUser = session.user;
+
+      const now = new Date();
+      document.getElementById('budget-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+      await loadCategories();
+      await loadBudgets();
+    }
+
+    async function loadCategories() {
+      const { data } = await supabaseClient.from('categories').select('*')
+        .or(`is_system.eq.true,user_id.eq.${currentUser.id}`)
+        .eq('type', 'expense')
+        .order('name');
+      expenseCategories = data || [];
+
+      const sel = document.getElementById('budget-category');
+      sel.innerHTML = '<option value="">Select expense category...</option>';
+      expenseCategories.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.icon} ${c.name}</option>`; });
+    }
+
+    async function loadBudgets() {
+      const { month, year } = getSelectedMonth();
+      document.getElementById('budget-subtitle').textContent = `${monthNames[month-1]} ${year}`;
+
+      const { data } = await supabaseClient.from('budgets').select('*, categories(name, icon, color)')
+        .eq('user_id', currentUser.id).eq('month', month).eq('year', year);
+      budgets = data || [];
+
+      // Get spending for each budget
+      let totalBudget = 0, totalSpent = 0;
+      const cards = [];
+
+      for (const b of budgets) {
+        const cat = b.categories || {};
+        const startDate = `${year}-${String(month).padStart(2,'0')}-01`;
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+        const { data: txns } = await supabaseClient.from('transactions').select('amount')
+          .eq('user_id', currentUser.id).eq('category_id', b.category_id).eq('type', 'expense')
+          .gte('transaction_date', startDate).lte('transaction_date', endDate);
+
+        const spent = txns ? txns.reduce((s, t) => s + Number(t.amount), 0) : 0;
+        const remaining = Number(b.amount) - spent;
+        const pct = Math.min(100, Math.round((spent / Number(b.amount)) * 100));
+        const cls = pct >= 90 ? 'danger' : pct >= 70 ? 'warning' : pct >= 100 ? 'danger' : '';
+
+        totalBudget += Number(b.amount);
+        totalSpent += spent;
+
+        cards.push(`
+          <div class="bento-card" style="grid-column:span 1;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:40px;height:40px;border-radius:12px;background:${cat.color}14;display:flex;align-items:center;justify-content:center;font-size:18px;">${cat.icon || '📁'}</div>
+                <span style="font-size:15px;font-weight:600;">${cat.name || 'Budget'}</span>
+              </div>
+              <div style="display:flex;gap:2px;">
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="editBudget('${b.id}')" title="Edit"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                <button class="btn btn-ghost btn-icon btn-sm" onclick="openBudgetDelete('${b.id}')" title="Remove" style="color:var(--danger);"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <span style="font-size:20px;font-weight:700;">${fmtCur(spent)}</span>
+              <span style="font-size:13px;font-weight:500;color:var(--text-muted);">${pct}%</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">of ${fmtCur(b.amount)} budget</div>
+            <div class="progress-bar-track" style="height:10px;">
+              <div class="progress-bar-fill ${cls}" style="width:${pct}%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px;">
+              <span style="font-size:12px;color:${remaining >= 0 ? 'var(--success)' : 'var(--danger)'};font-weight:600;">${remaining >= 0 ? fmtCur(remaining) + ' left' : fmtCur(Math.abs(remaining)) + ' over'}</span>
+            </div>
+          </div>`);
+      }
+
+      document.getElementById('total-budget').textContent = fmtCur(totalBudget);
+      document.getElementById('total-spent').textContent = fmtCur(totalSpent);
+      const rem = totalBudget - totalSpent;
+      document.getElementById('total-remaining').textContent = fmtCur(Math.abs(rem));
+      document.getElementById('total-remaining').style.color = rem >= 0 ? 'var(--success)' : 'var(--danger)';
+
+      document.getElementById('budget-grid').innerHTML = cards.length ? cards.join('')
+        : '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon"><svg style="width:28px;height:28px;color:var(--text-faint);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div><p class="empty-state-title">No budgets set</p><p class="empty-state-text">Click "Set Budget" to define spending limits</p></div>';
+    }
+
+    function openBudgetModal(data = null) {
+      document.getElementById('budget-modal').classList.add('active');
+      document.getElementById('budget-form').reset();
+      document.getElementById('budget-edit-id').value = '';
+      document.getElementById('budget-modal-title').textContent = 'Set Budget';
+      if (data) {
+        document.getElementById('budget-modal-title').textContent = 'Edit Budget';
+        document.getElementById('budget-edit-id').value = data.id;
+        document.getElementById('budget-category').value = data.category_id;
+        document.getElementById('budget-amount').value = data.amount;
+      }
+    }
+    function closeBudgetModal() { document.getElementById('budget-modal').classList.remove('active'); }
+
+    function editBudget(id) {
+      const b = budgets.find(x => x.id === id);
+      if (b) openBudgetModal(b);
+    }
+
+    async function saveBudget() {
+      const editId = document.getElementById('budget-edit-id').value;
+      const categoryId = document.getElementById('budget-category').value;
+      const amount = parseFloat(document.getElementById('budget-amount').value);
+      const { month, year } = getSelectedMonth();
+
+      if (!categoryId) return Toast.show('Select a category', 'warning');
+      if (!amount || amount <= 0) return Toast.show('Enter a valid amount', 'warning');
+
+      try {
+        if (editId) {
+          const { error } = await supabaseClient.from('budgets').update({ amount, category_id: categoryId }).eq('id', editId);
+          if (error) throw error;
+          Toast.show('Budget updated!', 'success');
+        } else {
+          const { error } = await supabaseClient.from('budgets').insert({
+            user_id: currentUser.id, category_id: categoryId, amount, month, year
+          });
+          if (error) throw error;
+          Toast.show('Budget set!', 'success');
+        }
+        closeBudgetModal();
+        await loadBudgets();
+      } catch (e) { Toast.show(e.message || 'Failed', 'error'); }
+    }
+
+    function openBudgetDelete(id) {
+      document.getElementById('budget-delete-id').value = id;
+      document.getElementById('budget-delete-modal').classList.add('active');
+    }
+    function closeBudgetDeleteModal() { document.getElementById('budget-delete-modal').classList.remove('active'); }
+
+    async function confirmBudgetDelete() {
+      const id = document.getElementById('budget-delete-id').value;
+      try {
+        const { error } = await supabaseClient.from('budgets').delete().eq('id', id);
+        if (error) throw error;
+        Toast.show('Budget removed', 'success');
+        closeBudgetDeleteModal();
+        await loadBudgets();
+      } catch (e) { Toast.show(e.message, 'error'); }
+    }
+
+    function fmtCur(v) { return `LKR ${Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => { m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }); });
+    init();
+  </script>
+</body>
+</html>

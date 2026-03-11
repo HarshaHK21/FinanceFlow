@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Create your FinanceFlow account and start managing your finances today">
+  <title>Create Account | FinanceFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <!-- Minimal Auth Nav -->
+  <nav style="position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(250,250,250,0.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,0.04);">
+    <div style="max-width:1200px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;">
+      <a href="/" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+        <div style="width:32px;height:32px;background:#0a0a0a;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+          <svg style="width:16px;height:16px;" fill="none" stroke="white" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <span style="font-size:16px;font-weight:700;color:#0a0a0a;letter-spacing:-0.3px;">FinanceFlow</span>
+      </a>
+      <a href="/pages/login.html" style="padding:8px 16px;font-size:13px;font-weight:500;color:#6b7280;text-decoration:none;border-radius:8px;transition:color 0.2s;" onmouseover="this.style.color='#0a0a0a'" onmouseout="this.style.color='#6b7280'">Already have an account? Sign In</a>
+    </div>
+  </nav>
+
+  <!-- Signup Page -->
+  <main class="auth-layout">
+    <div class="auth-card">
+      <!-- Logo & Title -->
+      <div class="text-center mb-8">
+        <div class="w-14 h-14 bg-black rounded-2xl flex items-center justify-center mx-auto mb-5 float-animation shadow-lg shadow-black/10">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Create your account</h1>
+        <p class="text-sm text-gray-500 mt-2">Start your journey to financial freedom</p>
+      </div>
+
+      <!-- Signup Form Card -->
+      <div class="auth-card-inner">
+        <form id="signup-form" autocomplete="on">
+          <!-- Full Name -->
+          <div class="form-group">
+            <label for="signup-name" class="form-label">Full name</label>
+            <div class="form-input-wrapper">
+              <input type="text" id="signup-name" class="form-input" placeholder="John Doe" autocomplete="name" required>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="signup-email" class="form-label">Email address</label>
+            <div class="form-input-wrapper">
+              <input type="email" id="signup-email" class="form-input" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label for="signup-password" class="form-label">Password</label>
+            <div class="form-input-wrapper">
+              <input type="password" id="signup-password" class="form-input pr-12" placeholder="Min. 6 characters" autocomplete="new-password" required minlength="6">
+              <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                <svg class="w-5 h-5 eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg class="w-5 h-5 eye-closed hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label for="signup-confirm-password" class="form-label">Confirm password</label>
+            <div class="form-input-wrapper">
+              <input type="password" id="signup-confirm-password" class="form-input pr-12" placeholder="Re-enter your password" autocomplete="new-password" required minlength="6">
+              <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                <svg class="w-5 h-5 eye-open" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg class="w-5 h-5 eye-closed hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Terms checkbox -->
+          <div class="flex items-start gap-3 mt-4 mb-6">
+            <input type="checkbox" id="signup-terms" required class="mt-0.5 w-4 h-4 rounded border-gray-300 text-black focus:ring-black focus:ring-offset-0 cursor-pointer accent-black">
+            <label for="signup-terms" class="text-xs text-gray-500 leading-relaxed cursor-pointer">
+              I agree to the <a href="#" class="auth-link text-xs">Terms of Service</a> and <a href="#" class="auth-link text-xs">Privacy Policy</a>
+            </label>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="signup-btn" class="btn-primary">
+            <div id="signup-spinner" class="spinner hidden"></div>
+            <span id="signup-btn-text">Create Account</span>
+          </button>
+        </form>
+
+        <!-- Divider -->
+        <div class="divider">
+          <div class="divider-line"></div>
+          <span class="divider-text">or</span>
+          <div class="divider-line"></div>
+        </div>
+
+        <!-- Login Link -->
+        <p class="text-center text-sm text-gray-500">
+          Already have an account?
+          <a href="/pages/login.html" class="auth-link">Sign in</a>
+        </p>
+      </div>
+
+      <!-- Bottom branding -->
+      <p class="text-center text-xs text-gray-300 mt-8">Secured by Supabase · Built with ♥</p>
+    </div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/components-loader.js"></script>
+  <script src="/js/auth.js"></script>
+</body>
+</html>

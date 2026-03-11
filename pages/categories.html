@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Manage your transaction categories - FinanceFlow">
+  <title>Categories | FinanceFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()"><svg style="width:24px;height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+          <div><h1>Categories</h1><p>Manage income and expense categories</p></div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openCatModal()" style="width:auto;">
+          <svg style="width:16px;height:16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New Category
+        </button>
+      </div>
+
+      <div class="page-body">
+        <!-- Type Tabs -->
+        <div style="margin-bottom:20px;">
+          <div class="tabs" style="display:inline-flex;width:auto;">
+            <button class="tab-btn active" onclick="filterCats('all', this)">All</button>
+            <button class="tab-btn" onclick="filterCats('income', this)">Income</button>
+            <button class="tab-btn" onclick="filterCats('expense', this)">Expense</button>
+          </div>
+        </div>
+
+        <!-- System Categories -->
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">System Categories</h3>
+        <div class="bento-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-bottom:32px;" id="system-cats"></div>
+
+        <!-- Custom Categories -->
+        <h3 style="font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;">Your Categories</h3>
+        <div class="bento-grid" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));" id="custom-cats">
+          <div class="empty-state" style="grid-column:1/-1;padding:32px;">
+            <p class="empty-state-text">No custom categories yet</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Category Modal -->
+  <div class="modal-overlay" id="cat-modal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="cat-modal-title">New Category</h3>
+        <button class="modal-close" onclick="closeCatModal()"><svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <form id="cat-form">
+          <input type="hidden" id="cat-edit-id" value="">
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <div class="tabs" id="cat-type-tabs">
+              <button type="button" class="tab-btn active" data-type="expense" onclick="setCatType('expense')">Expense</button>
+              <button type="button" class="tab-btn" data-type="income" onclick="setCatType('income')">Income</button>
+            </div>
+          </div>
+          <input type="hidden" id="cat-type" value="expense">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" id="cat-name" class="form-input" placeholder="e.g. Coffee, Freelancing" required>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+              <label class="form-label">Icon (emoji)</label>
+              <input type="text" id="cat-icon" class="form-input" placeholder="📁" value="📁" maxlength="4" style="text-align:center;font-size:20px;">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Color</label>
+              <input type="color" id="cat-color" class="form-input" value="#6366f1" style="padding:6px;height:44px;cursor:pointer;">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCatModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCat()" style="width:auto;" id="cat-save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div class="modal-overlay" id="cat-delete-modal">
+    <div class="modal" style="max-width:400px;">
+      <div class="modal-header"><h3 class="modal-title">Delete Category</h3></div>
+      <div class="modal-body"><p style="font-size:14px;color:var(--text-secondary);">Delete this category? Make sure no transactions use it first.</p><input type="hidden" id="cat-delete-id"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCatDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmCatDelete()" style="width:auto;">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/components-loader.js"></script>
+  <script>
+    ComponentLoader.load('/components/sidebar.html', '#sidebar-container');
+
+    let currentUser = null;
+    let categories = [];
+    let currentFilter = 'all';
+
+    async function init() {
+      const session = await redirectIfNotLoggedIn();
+      if (!session) return;
+      currentUser = session.user;
+      await loadCats();
+    }
+
+    async function loadCats() {
+      const { data } = await supabaseClient.from('categories').select('*').or(`is_system.eq.true,user_id.eq.${currentUser.id}`).order('name');
+      categories = data || [];
+      renderCats();
+    }
+
+    function renderCats() {
+      const system = categories.filter(c => c.is_system && (currentFilter === 'all' || c.type === currentFilter));
+      const custom = categories.filter(c => !c.is_system && (currentFilter === 'all' || c.type === currentFilter));
+
+      document.getElementById('system-cats').innerHTML = system.map(c => catCard(c, false)).join('');
+      document.getElementById('custom-cats').innerHTML = custom.length
+        ? custom.map(c => catCard(c, true)).join('')
+        : '<div class="empty-state" style="grid-column:1/-1;padding:32px;"><p class="empty-state-text">No custom categories yet</p></div>';
+    }
+
+    function catCard(c, editable) {
+      return `<div class="bento-card" style="padding:16px;display:flex;align-items:center;gap:12px;grid-column:span 1;">
+        <div style="width:42px;height:42px;border-radius:12px;background:${c.color}14;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">${c.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
+          <span class="badge ${c.type}" style="margin-top:3px;">${c.type}</span>
+        </div>
+        ${editable ? `<div style="display:flex;gap:2px;">
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="editCat('${c.id}')" title="Edit"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+          <button class="btn btn-ghost btn-icon btn-sm" onclick="openCatDelete('${c.id}')" title="Delete" style="color:var(--danger);"><svg style="width:14px;height:14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+        </div>` : ''}
+      </div>`;
+    }
+
+    function filterCats(type, btn) {
+      currentFilter = type;
+      document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCats();
+    }
+
+    function setCatType(type) {
+      document.getElementById('cat-type').value = type;
+      document.querySelectorAll('#cat-type-tabs .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+    }
+
+    function openCatModal(data = null) {
+      document.getElementById('cat-modal').classList.add('active');
+      document.getElementById('cat-form').reset();
+      document.getElementById('cat-edit-id').value = '';
+      document.getElementById('cat-modal-title').textContent = 'New Category';
+      document.getElementById('cat-icon').value = '📁';
+      document.getElementById('cat-color').value = '#6366f1';
+      setCatType('expense');
+      if (data) {
+        document.getElementById('cat-modal-title').textContent = 'Edit Category';
+        document.getElementById('cat-edit-id').value = data.id;
+        document.getElementById('cat-name').value = data.name;
+        document.getElementById('cat-icon').value = data.icon;
+        document.getElementById('cat-color').value = data.color;
+        setCatType(data.type);
+      }
+    }
+    function closeCatModal() { document.getElementById('cat-modal').classList.remove('active'); }
+
+    function editCat(id) {
+      const c = categories.find(x => x.id === id);
+      if (c) openCatModal(c);
+    }
+
+    async function saveCat() {
+      const editId = document.getElementById('cat-edit-id').value;
+      const name = document.getElementById('cat-name').value.trim();
+      const type = document.getElementById('cat-type').value;
+      const icon = document.getElementById('cat-icon').value || '📁';
+      const color = document.getElementById('cat-color').value;
+
+      if (!name) return Toast.show('Enter a name', 'warning');
+
+      try {
+        const payload = { name, type, icon, color, is_system: false };
+        if (editId) {
+          const { error } = await supabaseClient.from('categories').update(payload).eq('id', editId).eq('user_id', currentUser.id);
+          if (error) throw error;
+          Toast.show('Category updated!', 'success');
+        } else {
+          payload.user_id = currentUser.id;
+          const { error } = await supabaseClient.from('categories').insert(payload);
+          if (error) throw error;
+          Toast.show('Category created!', 'success');
+        }
+        closeCatModal();
+        await loadCats();
+      } catch (e) { Toast.show(e.message || 'Failed', 'error'); }
+    }
+
+    function openCatDelete(id) {
+      document.getElementById('cat-delete-id').value = id;
+      document.getElementById('cat-delete-modal').classList.add('active');
+    }
+    function closeCatDeleteModal() { document.getElementById('cat-delete-modal').classList.remove('active'); }
+
+    async function confirmCatDelete() {
+      const id = document.getElementById('cat-delete-id').value;
+      try {
+        const { error } = await supabaseClient.from('categories').delete().eq('id', id).eq('user_id', currentUser.id);
+        if (error) throw error;
+        Toast.show('Category deleted', 'success');
+        closeCatDeleteModal();
+        await loadCats();
+      } catch (e) { Toast.show(e.message || 'Cannot delete (may have transactions)', 'error'); }
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(m => { m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }); });
+    init();
+  </script>
+</body>
+</html>
