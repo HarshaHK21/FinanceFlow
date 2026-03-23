@@ -187,6 +187,3 @@ This project is for educational and personal use. Feel free to fork and customiz
 
 ---
 
-<p align="center">
-  Built with ♥ & <a href="https://supabase.com">Supabase</a>
-</p>
